@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Comparator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #f4f6f8;
+            --surface: #ffffff;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-light: #e0e7ff;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body { 
+            background-color: var(--bg-body); 
+            color: var(--text-main); 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .app-container { 
+            max-width: 1600px; 
+            margin: 0 auto; 
+            width: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; 
+            gap: 20px; 
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--surface); padding: 15px 25px; border-radius: var(--radius);
+            box-shadow: var(--shadow-sm); border: 1px solid var(--border); flex-shrink: 0;
+        }
+
+        .brand { display: flex; align-items: center; gap: 15px; }
+        .brand-icon { 
+            background: linear-gradient(135deg, var(--primary), #8b5cf6); 
+            padding: 10px; border-radius: 10px; color: white; 
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); 
+        }
+        .brand-text h1 { font-size: 20px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+        .brand-text p { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+
+        .settings-group { display: flex; gap: 20px; align-items: center; background: #f8fafc; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); }
+        .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none; }
+        .toggle-label input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+        /* Workspace Grid */
+        .workspace { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr 1.3fr; 
+            gap: 20px; 
+            height: 100%; 
+            min-height: 0; 
+        }
+
+        @media (max-width: 1200px) { .workspace { grid-template-columns: 1fr 1fr; } .results-panel { grid-column: span 2; } body { overflow: auto; height: auto; } .workspace { height: 1000px; } }
+        @media (max-width: 768px) { .workspace { grid-template-columns: 1fr; } .top-bar { flex-direction: column; gap: 15px; align-items: flex-start; } .workspace { height: 1500px; } }
+
+        .panel {
+            background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+            box-shadow: var(--shadow-md); display: flex; flex-direction: column; overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .panel-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+        .panel-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; background: #e2e8f0; color: var(--text-muted); }
+        .badge.primary { background: var(--primary-light); color: var(--primary-hover); }
+        .badge.danger { background: var(--danger-light); color: var(--danger); }
+        .badge.success { background: var(--success-light); color: var(--success); }
+
+        .editor-container { flex-grow: 1; padding: 15px; display: flex; flex-direction: column; }
+        textarea {
+            flex-grow: 1; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 15px;
+            font-size: 14px; font-family: 'Consolas', 'Courier New', monospace; resize: none;
+            background: #fafafa; color: #334155; line-height: 1.6; white-space: pre; overflow-wrap: normal; overflow-x: auto;
+        }
+        textarea:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
+
+        /* Results Panel */
+        .tabs { display: flex; gap: 5px; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
+        .tab-btn {
+            padding: 8px 16px; border: none; background: transparent; font-size: 14px; font-weight: 600;
+            color: var(--text-muted); cursor: pointer; border-radius: 6px; transition: all 0.2s;
+        }
+        .tab-btn:hover { background: #f1f5f9; color: var(--text-main); }
+        .tab-btn.active { color: var(--primary); background: var(--primary-light); }
+
+        /* Progress Bar */
+        .analytics { padding: 15px 20px; border-bottom: 1px solid var(--border); background: #f8fafc; }
+        .progress-bar-container { height: 8px; width: 100%; background: #e2e8f0; border-radius: 10px; overflow: hidden; display: flex; margin-top: 8px; }
+        .progress-unique { background: var(--success); transition: width 0.5s ease; }
+        .progress-dup { background: var(--danger); transition: width 0.5s ease; }
+        .stats-text { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-top: 5px; }
+
+        .result-list { flex-grow: 1; overflow-y: auto; padding: 15px; background: #fafafa; }
+        .result-section { display: none; }
+        .result-section.active { display: block; }
+
+        /* Row Items */
+        .row-item {
+            display: flex; align-items: center; padding: 8px 12px; background: #fff; border-radius: 6px;
+            margin-bottom: 6px; border: 1px solid var(--border); font-family: 'Consolas', monospace; font-size: 14px;
+        }
+        .row-item.unique { border-left: 4px solid var(--success); background-color: #f0fdf4; }
+        .row-item.duplicate { border-left: 4px solid var(--danger); background-color: #fef2f2; }
+        .line-num { color: #94a3b8; font-size: 12px; width: 40px; font-weight: 600; user-select: none; }
+        .data-text { flex-grow: 1; color: #334155; font-weight: 500; }
+        .tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+        .tag-unique { background: var(--success-light); color: var(--success); }
+        .tag-dup { background: var(--danger-light); color: var(--danger); }
+
+        /* Buttons */
+        .actions-footer { padding: 15px 20px; border-top: 1px solid var(--border); background: var(--surface); display: flex; gap: 10px; }
+        .btn {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px;
+            border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { background: #f1f5f9; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); opacity: 0.7; font-weight: 500;}
+
+        /* Toast */
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #1e293b; color: #fff;
+            text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000;
+            left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 14px; font-weight: 500;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, bottom 0.3s;
+        }
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="brand">
+            <div class="brand-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            </div>
+            <div class="brand-text">
+                <h1>Shaikh Javed W.</h1>
+                <p>Compare Data for E-filing</p>
+            </div>
+        </div>
+        <div class="settings-group">
+            <label class="toggle-label" title="Remove empty spaces from start and end">
+                <input type="checkbox" id="trim-spaces" checked onchange="triggerProcessing()"> Trim Spaces
+            </label>
+            <label class="toggle-label" title="Treat 'A' and 'a' differently">
+                <input type="checkbox" id="case-sensitive" onchange="triggerProcessing()"> Case Sensitive
+            </label>
+            <button class="btn btn-outline" onclick="clearAll()" style="padding: 6px 12px; flex: none;">Clear All</button>
+        </div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="workspace">
+        
+        <!-- Base List -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Master List (Base)</div>
+                <span id="count-col1" class="badge">0 Rows</span>
+            </div>
+            <div class="editor-container">
+                <textarea id="col1" placeholder="Paste master data column here..." oninput="handleInput()"></textarea>
+            </div>
+        </div>
+
+        <!-- Target List -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Target List (To Check)</div>
+                <span id="count-col2" class="badge">0 Rows</span>
+            </div>
+            <div class="editor-container">
+                <textarea id="col2" placeholder="Paste data to compare against master list..." oninput="handleInput()"></textarea>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="panel results-panel">
+            <div class="panel-header" style="background: #fff;">
+                <div class="panel-title">Live Analytics</div>
+                <div style="display: flex; gap: 8px;">
+                    <span id="count-unique" class="badge success" style="display:none;">0 Unique</span>
+                    <span id="count-dup" class="badge danger" style="display:none;">0 Dupes</span>
+                </div>
+            </div>
+
+            <!-- Visual Progress Bar -->
+            <div class="analytics" id="analytics-box" style="display: none;">
+                <div class="progress-bar-container">
+                    <div id="prog-unique" class="progress-unique" style="width: 0%;"></div>
+                    <div id="prog-dup" class="progress-dup" style="width: 0%;"></div>
+                </div>
+                <div class="stats-text">
+                    <span id="stat-unique-text" style="color: var(--success);">Unique: 0%</span>
+                    <span id="stat-dup-text" style="color: var(--danger);">Duplicates: 0%</span>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('all')" id="tab-all">All Items</button>
+                <button class="tab-btn" onclick="switchTab('unique')" id="tab-unique">Unique</button>
+                <button class="tab-btn" onclick="switchTab('duplicates')" id="tab-duplicates">Duplicates</button>
+            </div>
+
+            <!-- Result Lists -->
+            <div class="result-list">
+                <div id="all-results" class="result-section active">
+                    <div class="empty-state">Paste data in both columns to see magic! ✨</div>
+                </div>
+                <div id="unique-results" class="result-section">
+                    <div class="empty-state">No unique items found.</div>
+                </div>
+                <div id="duplicate-results" class="result-section">
+                    <div class="empty-state">No duplicates found.</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="actions-footer">
+                <button class="btn btn-success" onclick="copyResults('unique')">Copy Unique</button>
+                <button class="btn btn-danger" onclick="copyResults('duplicates')">Copy Duplicates</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast">Message here</div>
+
+<script>
+    let typingTimer;
+    let duplicateArray = [];
+    let uniqueArray = [];
+
+    function handleInput() {
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(processData, 250); // Fast Debouncing
+    }
+
+    function triggerProcessing() {
+        processData();
+    }
+
+    function processData() {
+        let val1 = document.getElementById('col1').value;
+        let val2 = document.getElementById('col2').value;
+        
+        let doTrim = document.getElementById('trim-spaces').checked;
+        let isCaseSensitive = document.getElementById('case-sensitive').checked;
+
+        // Process line by line, applying trim if selected
+        let arr1 = val1.split('\n').map(x => doTrim ? x.trim() : x).filter(x => x !== "");
+        let arr2 = val2.split('\n').map(x => doTrim ? x.trim() : x).filter(x => x !== "");
+
+        // Update counts
+        document.getElementById('count-col1').innerText = `${arr1.length} Rows`;
+        document.getElementById('count-col2').innerText = `${arr2.length} Rows`;
+
+        let allContainer = document.getElementById('all-results');
+        let uniqueContainer = document.getElementById('unique-results');
+        let dupContainer = document.getElementById('duplicate-results');
+        let analyticsBox = document.getElementById('analytics-box');
+
+        duplicateArray = [];
+        uniqueArray = [];
+
+        if (arr1.length === 0 || arr2.length === 0) {
+            allContainer.innerHTML = `<div class="empty-state">Paste data in both columns to see magic! ✨</div>`;
+            uniqueContainer.innerHTML = `<div class="empty-state">No unique items found.</div>`;
+            dupContainer.innerHTML = `<div class="empty-state">No duplicates found.</div>`;
+            analyticsBox.style.display = 'none';
+            document.getElementById('count-unique').style.display = 'none';
+            document.getElementById('count-dup').style.display = 'none';
+            return;
+        }
+
+        // Setup Hash Set for O(1) lightning fast lookup
+        let col1Set = new Set();
+        arr1.forEach(x => {
+            col1Set.add(isCaseSensitive ? x : x.toLowerCase());
+        });
+
+        let allHtml = '';
+        let uniqueHtml = '';
+        let dupHtml = '';
+
+        arr2.forEach((item, index) => {
+            let checkItem = isCaseSensitive ? item : item.toLowerCase();
+            let isDuplicate = col1Set.has(checkItem);
+            let lineNum = index + 1;
+
+            if (isDuplicate) {
+                duplicateArray.push(item);
+                let row = `
+                    <div class="row-item duplicate">
+                        <span class="line-num">#${lineNum}</span>
+                        <span class="data-text">${item}</span>
+                        <span class="tag tag-dup">Duplicate</span>
+                    </div>`;
+                dupHtml += row;
+                allHtml += row;
+            } else {
+                uniqueArray.push(item);
+                let row = `
+                    <div class="row-item unique">
+                        <span class="line-num">#${lineNum}</span>
+                        <span class="data-text">${item}</span>
+                        <span class="tag tag-unique">Unique</span>
+                    </div>`;
+                uniqueHtml += row;
+                allHtml += row;
+            }
+        });
+
+        // Update UI
+        allContainer.innerHTML = allHtml;
+        uniqueContainer.innerHTML = uniqueHtml || `<div class="empty-state">No unique items found!</div>`;
+        dupContainer.innerHTML = dupHtml || `<div class="empty-state">No duplicates found! 🎉</div>`;
+
+        // Update Analytics Bar
+        let totalProcessed = uniqueArray.length + duplicateArray.length;
+        if(totalProcessed > 0) {
+            analyticsBox.style.display = 'block';
+            let uPerc = ((uniqueArray.length / totalProcessed) * 100).toFixed(1);
+            let dPerc = ((duplicateArray.length / totalProcessed) * 100).toFixed(1);
+            
+            document.getElementById('prog-unique').style.width = `${uPerc}%`;
+            document.getElementById('prog-dup').style.width = `${dPerc}%`;
+            
+            document.getElementById('stat-unique-text').innerText = `Unique: ${uPerc}%`;
+            document.getElementById('stat-dup-text').innerText = `Duplicates: ${dPerc}%`;
+        }
+
+        // Update Badges
+        let uBadge = document.getElementById('count-unique');
+        let dBadge = document.getElementById('count-dup');
+
+        uBadge.innerText = `${uniqueArray.length} Unique`;
+        uBadge.style.display = uniqueArray.length > 0 ? 'inline-block' : 'none';
+
+        dBadge.innerText = `${duplicateArray.length} Dupes`;
+        dBadge.style.display = duplicateArray.length > 0 ? 'inline-block' : 'none';
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.result-section').forEach(sec => sec.classList.remove('active'));
+
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        document.getElementById(`${tabName}-results`).classList.add('active');
+    }
+
+    function copyResults(type) {
+        let dataToCopy = type === 'duplicates' ? duplicateArray : uniqueArray;
+        
+        if (dataToCopy.length === 0) {
+            showToast(`No ${type} data to copy!`);
+            return;
+        }
+
+        let text = dataToCopy.join('\n');
+        navigator.clipboard.writeText(text).then(() => {
+            showToast(`✅ Copied ${dataToCopy.length} ${type} items to clipboard!`);
+        }).catch(err => {
+            showToast('❌ Failed to copy text.');
+        });
+    }
+
+    function clearAll() {
+        document.getElementById('col1').value = '';
+        document.getElementById('col2').value = '';
+        processData();
+        showToast("🧹 All fields cleared successfully.");
+    }
+
+    function showToast(message) {
+        let toast = document.getElementById("toast");
+        toast.innerText = message;
+        toast.className = "show";
+        setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+</script>
+
+</body>
+</html>
